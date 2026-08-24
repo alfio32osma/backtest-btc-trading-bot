@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from src.data_loader import load_and_clean_data, resample_data
+from src.indicators import calculate_adx
 
 #region
 # ═══════════════════════════════════════════════════════════════════
@@ -35,36 +36,7 @@ from src.data_loader import load_and_clean_data, resample_data
 
 df_raw = load_and_clean_data("btc.csv")
 df_h = resample_data(df_raw, timeframe="4h")
-
-df = pd.read_csv('BTC.csv', sep='\s+')
-def calcular_adx(df, period=14):
-    df = df.copy()
-    high = df['high']
-    low = df['low']
-    close = df['close']
-    
-    tr1 = high - low
-    tr2 = np.abs(high - close.shift(1))
-    tr3 = np.abs(low - close.shift(1))
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    
-    plus_dm = high.diff()
-    minus_dm = low.diff()
-    plus_dm[plus_dm < 0] = 0
-    minus_dm[minus_dm > 0] = 0
-    minus_dm = np.abs(minus_dm)
-    
-    plus_dm.loc[plus_dm < minus_dm] = 0
-    minus_dm.loc[minus_dm < plus_dm.shift(0)] = 0
-
-    tr_smooth = tr.rolling(window=period).mean()
-    plus_di = 100 * (plus_dm.rolling(window=period).mean() / tr_smooth)
-    minus_di = 100 * (minus_dm.rolling(window=period).mean() / tr_smooth)
-    
-    dx = 100 * np.abs(plus_di - minus_di) / (plus_di + minus_di)
-    adx = dx.rolling(window=period).mean()
-    
-    return adx
+df_h['adx'] = calculate_adx(df_h, period=14)
 
 
 def ejecutar_backtest_con_proteccion(csv_path):
@@ -76,7 +48,7 @@ def ejecutar_backtest_con_proteccion(csv_path):
     high_close  = np.abs(df_h['high'] - df_h['close'].shift())
     low_close   = np.abs(df_h['low']  - df_h['close'].shift())
     df_h['atr'] = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).rolling(14).mean()
-    df_h['adx'] = calcular_adx(df_h, period=14)
+    df_h['adx'] = calcule_adx(df_h, period=14)
 
     df_h['volatilidad_ok']  = df_h['atr'] < (df_h['close'] * 0.02)
     df_h['tendencia_fuerte'] = df_h['adx'] > 31
