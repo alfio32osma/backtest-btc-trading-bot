@@ -48,7 +48,7 @@ def ejecutar_backtest_con_proteccion(csv_path):
     high_close  = np.abs(df_h['high'] - df_h['close'].shift())
     low_close   = np.abs(df_h['low']  - df_h['close'].shift())
     df_h['atr'] = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).rolling(14).mean()
-    df_h['adx'] = calcule_adx(df_h, period=14)
+    df_h['adx'] = calculate_adx(df_h, period=14)
 
     df_h['volatilidad_ok']  = df_h['atr'] < (df_h['close'] * 0.02)
     df_h['tendencia_fuerte'] = df_h['adx'] > 31
