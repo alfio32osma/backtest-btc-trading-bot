@@ -1,19 +1,19 @@
 import logging
 import pandas as pd
-from src.backtester.state import Backtest_state
+from src.backtester.state import BacktestState
 from src.backtester.strategy import check_entry_signal
 from src.backtester.execution import manage_open_position, execute_new_entry
 from src.backtester.risk_manager import evaluate_protection_system
 
 logger = logging.getLogger(__name__)
 
-def run_simulation_engine(df_h: pd.DataFrame) -> Backtest_state:
+def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
     #Core backtest loop, ochestrates state, risk and execution
 
     if df_h is None or df_h.empty:
         raise ValueError("DataFrame is empty. Cannot run simulation")
 
-    state = Backtest_state(initial_equity= 1000.0)
+    state = BacktestState(initial_equity= 1000.0)
 
     for index, current_bar in df_h.iterrows():
         try:
