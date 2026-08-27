@@ -106,9 +106,10 @@ class TradePosition:
                 partial_executed_now = True
 
             #Update dynamic trailing stop
-            new_trailing_stop = current_close * (1 - self.trailing_stop_pct)
-            if new_trailing_stop > self.current_stop:
-                self.current_stop = new_trailing_stop
+            if not partial_executed_now:
+                new_trailing_stop = current_close * (1 - self.trailing_stop_pct)
+                if new_trailing_stop > self.current_stop:
+                    self.current_stop = new_trailing_stop
 
             #Evaluate exit conditions
             exit_ema_threshold = ema200 * (1 - exit_ema_margin)
