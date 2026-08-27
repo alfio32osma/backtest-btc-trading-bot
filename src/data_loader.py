@@ -27,9 +27,11 @@ def load_and_clean_data(csv_path: str) -> pd.DataFrame:
             col_date = df.columns[0]
 
         try:
+            #Create the column "date" using col_date while still exists
             if df[col_date].dtype == object:
-                raw_date = df[col_date].astype(str).str.replace(".", "-", regex=False)
-                df["date"] = pd.to_datetime(df[raw_date])
+                df["date"] = pd.to_datetime(
+                    df[col_date].astype(str).str.replace(".", "-", regex=False)
+                )
 
             elif df[col_date].dtype in ["int64", "float64"]: # handle unitstamps case
                 unit = "ms" if df[col_date].iloc[0] > 1e11 else "s" # handling cases seconds/miliseconds
@@ -39,6 +41,10 @@ def load_and_clean_data(csv_path: str) -> pd.DataFrame:
             else:
                 df["date"] = pd.to_datetime(df[col_date])
 
+            #after create with success "date", if the original column was different, then is delete it 
+            if col_date != "date" and col_date in df.columns:
+                    df = df.drop(columns=[col_date])
+            
         except Exception as e: 
             raise ValueError(F"Critical error on column date {col_date}: {e}")
 
