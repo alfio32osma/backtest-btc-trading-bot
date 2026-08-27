@@ -1,2 +1,7 @@
-# btc-trading-bot
-# bot on hyperliquid-DeFi-blockchain-world
+1. El Flujo de main.py (El Orquestador)Este archivo se convierte en el panel de control. Su único trabajo es mover datos de un lado a otro.Carga y limpia el archivo CSV inicial.  Calcula los indicadores (ADX, ATR, EMAs) y se los inyecta al DataFrame.  Pasa ese DataFrame limpio a tu motor de simulación.  Recibe los resultados del motor y los envía a las capas de métricas y gráficos.Ventaja: En tus tests, puedes enviarle a tu motor un DataFrame falso para verificar que compra y vende correctamente, sin depender de un archivo físico.
+
+2. src/backtester/engine.py (El Motor de Simulación)Aquí residirá exclusivamente la lógica de ejecución (el bucle for principal).  No debe importar dependencias de visualización ni leer rutas de disco.Gestiona el estado de in_position usando tu clase TradePosition.  Evalúa el riesgo invocando a evaluate_protection_system.  Al terminar el bucle, retorna únicamente estructuras de datos nativas: history_total, trade_list y pause_logs.  
+
+3. src/metrics.py (Evaluación de Rendimiento)Esta capa recibe las listas crudas generadas por el motor.Se encarga de crear los objetos DataFrame finales.  Calcula estadísticas clave como el Win Rate, el Profit Factor y el Max Drawdown.  Maneja la exportación a archivos CSV (reporte_trades_con_proteccion.csv) y los print formateados de la consola. 
+
+4. src/plotting.py (Visualización)Un módulo dedicado al front-end de la estrategia.Recibe las fechas, el histórico de capital y el drawdown.Contiene toda la configuración de matplotlib (creación de la figura con subplots, escalas logarítmicas, sombreados).  Guarda el resultado final en grafico_proteccion_capital.png.  
