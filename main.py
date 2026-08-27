@@ -1,39 +1,15 @@
-from src.data_loader import load_and_clean_data, resample_data
-from src.indicators import calculate_adx
-from src.strategy import ejecutar_backtest_con_proteccion
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
-#region
-# ═══════════════════════════════════════════════════════════════════
-#  SISTEMA DE PROTECCIÓN DE CAPITAL — LÓGICA GENERAL
-# ═══════════════════════════════════════════════════════════════════
-#
-#  El sistema tiene TRES niveles de alerta que se activan de forma
-#  acumulativa según las pérdidas consecutivas o el drawdown desde
-#  el último máximo de balance:
-#
-#  NIVEL 1 — Alerta (2 pérdidas seguidas O drawdown > 15%)
-#    → Pausa de 3 velas (12h) antes de aceptar nueva señal
-#    → Mensaje: el mercado está en racha adversa, esperar confirmación
-#
-#  NIVEL 2 — Precaución (3 pérdidas seguidas O drawdown > 25%)
-#    → Pausa de 12 velas (48h) antes de aceptar nueva señal
-#    → Se resetea el contador de pérdidas al reanudar
-#
-#  NIVEL 3 — Protección máxima (4 pérdidas seguidas O drawdown > 40%)
-#    → Pausa de 30 velas (5 días) antes de aceptar nueva señal
-#    → Al reanudar, el sistema vuelve a nivel 0
-#
-#  RESET AUTOMÁTICO: si se produce un trade ganador, el contador
-#  de pérdidas consecutivas vuelve a 0 y se desactiva cualquier pausa.
-#
-#  OBJETIVO: reducir el drawdown máximo por debajo del 50% sacrificando
-#  algunos trades en momentos de racha adversa, no modificando la
-#  lógica de entrada/salida de la estrategia base.
-# ═══════════════════════════════════════════════════════════════════
-#endregion
-if __name__ == "__main__":
+from src.data_loader import load_and_clean_data, resample_data
+from src.indicators import calculate_adx, calculate_average_true_range
+from src.backtester.risk_manager import evaluate_protection_system
+
+
+def ejecutar_backtest_con_proteccion(csv_path):
     # 1 | load and cooking data
-    df_raw = load_and_clean_data("btc.csv")
+    df_raw = load_and_clean_data(csv_path)
     df_h = resample_data(df_raw, timeframe="4h")
 
     # 2 | calculate indicators
@@ -43,14 +19,13 @@ if __name__ == "__main__":
     df_h['atr'] = calculate_average_true_range(df_h, period=14)
     df_h['adx'] = calculate_adx(df_h, period=14)
     
-def ejecutar_backtest_con_proteccion(csv_path):
     # Indicadores (limpios y desacoplados usando los módulos)
     df_h['Ema200'] = df_h['close'].ewm(span=200, adjust=False).mean()
     df_h['Ema50'] = df_h['close'].ewm(span=50, adjust=False).mean()
 
     # Usamos la función modular de ATR 
-    df_h['atr'] = calculate_average_true_range[df_h, period=14]
-    df_h['adx'] = calculate_adx[df_h, period=14]
+    df_h['atr'] = calculate_average_true_range(df_h, period=14)
+    df_h['adx'] = calculate_adx(df_h, period=14)
 
     df_h['volatilidad_ok']  = df_h['atr'] < (df_h['close'] * 0.02)
     df_h['tendencia_fuerte'] = df_h['adx'] > 31
@@ -64,22 +39,6 @@ def ejecutar_backtest_con_proteccion(csv_path):
     trailing_pct      = 0.03
     margen_ema_salida = 0.006
     tp_parcial_pct    = 0.247
-
-    # 5. PARÁMETROS DEL SISTEMA DE PROTECCIÓN
-    # ─── Umbrales de pérdidas consecutivas ──────────────────────────
-    PERDIDAS_NIVEL1 = 2      # 2 pérdidas → alerta
-    PERDIDAS_NIVEL2 = 3      # 3 pérdidas → precaución
-    PERDIDAS_NIVEL3 = 4      # 4 pérdidas → protección máxima
-
-    # ─── Umbrales de drawdown desde el último máximo ─────────────────
-    DD_NIVEL1 = 0.15         # -15% desde el pico
-    DD_NIVEL2 = 0.25         # -25% desde el pico
-    DD_NIVEL3 = 0.40         # -40% desde el pico
-
-    # ─── Velas de pausa por nivel (1 vela = 4h) ─────────────────────
-    PAUSA_NIVEL1 = 3         # 12 horas
-    PAUSA_NIVEL2 = 12        # 48 horas
-    PAUSA_NIVEL3 = 30        # 5 días
 
     # 6. VARIABLES DE ESTADO
     total_fees_paid    = 0.0
@@ -118,44 +77,25 @@ def ejecutar_backtest_con_proteccion(csv_path):
         if balance_bot > balance_pico:
             balance_pico = balance_bot
 
-        # ── Drawdown actual desde el pico ────────────────────────────
-        drawdown_actual = (balance_bot - balance_pico) / balance_pico  # valor negativo
+        # [Evaluar sistema de proteccion mediante el modulo risk_manager]
 
-        # ── Determinar nivel de protección necesario ─────────────────
-        #    Se evalúa pérdidas consecutivas Y drawdown; se toma el mayor nivel.
-        nivel_por_perdidas = 0
-        if perdidas_consecutivas >= PERDIDAS_NIVEL3:
-            nivel_por_perdidas = 3
-        elif perdidas_consecutivas >= PERDIDAS_NIVEL2:
-            nivel_por_perdidas = 2
-        elif perdidas_consecutivas >= PERDIDAS_NIVEL1:
-            nivel_por_perdidas = 1
 
-        nivel_por_drawdown = 0
-        if drawdown_actual <= -DD_NIVEL3:
-            nivel_por_drawdown = 3
-        elif drawdown_actual <= -DD_NIVEL2:
-            nivel_por_drawdown = 2
-        elif drawdown_actual <= -DD_NIVEL1:
-            nivel_por_drawdown = 1
-
-        nuevo_nivel = max(nivel_por_perdidas, nivel_por_drawdown)
+        nuevo_nivel, pause_candles_calculadas, drawdown_actual = evaluate_protection_system(
+            balance_bot = balance_bot,
+            balance_peak = balance_pico,
+            consecutive_losses = perdidas_consecutivas
+        )
 
         # ── Si el nivel sube, activar pausa correspondiente ──────────
         if nuevo_nivel > nivel_activo and not in_position:
             nivel_activo = nuevo_nivel
-            if nivel_activo == 1:
-                velas_en_pausa = PAUSA_NIVEL1
-            elif nivel_activo == 2:
-                velas_en_pausa = PAUSA_NIVEL2
-            elif nivel_activo == 3:
-                velas_en_pausa = PAUSA_NIVEL3
+            velas_en_pausa = pause_candles_calculadas
             log_pausas.append({
                 'Fecha': fecha,
                 'Nivel': nivel_activo,
-                'Pérdidas consec.': perdidas_consecutivas,
+                'Pérdidas consecutivas': perdidas_consecutivas,
                 'Drawdown %': round(drawdown_actual * 100, 2),
-                'Velas pausa': velas_en_pausa
+                'Velas pausa': velas_en_pausa 
             })
 
         # ── Descontar velas de pausa ──────────────────────────────────

@@ -1,3 +1,32 @@
+#region
+# ═══════════════════════════════════════════════════════════════════
+#  SISTEMA DE PROTECCIÓN DE CAPITAL — LÓGICA GENERAL
+# ═══════════════════════════════════════════════════════════════════
+#
+#  El sistema tiene TRES niveles de alerta que se activan de forma
+#  acumulativa según las pérdidas consecutivas o el drawdown desde
+#  el último máximo de balance:
+#
+#  NIVEL 1 — Alerta (2 pérdidas seguidas O drawdown > 15%)
+#    → Pausa de 3 velas (12h) antes de aceptar nueva señal
+#    → Mensaje: el mercado está en racha adversa, esperar confirmación
+#
+#  NIVEL 2 — Precaución (3 pérdidas seguidas O drawdown > 25%)
+#    → Pausa de 12 velas (48h) antes de aceptar nueva señal
+#    → Se resetea el contador de pérdidas al reanudar
+#
+#  NIVEL 3 — Protección máxima (4 pérdidas seguidas O drawdown > 40%)
+#    → Pausa de 30 velas (5 días) antes de aceptar nueva señal
+#    → Al reanudar, el sistema vuelve a nivel 0
+#
+#  RESET AUTOMÁTICO: si se produce un trade ganador, el contador
+#  de pérdidas consecutivas vuelve a 0 y se desactiva cualquier pausa.
+#
+#  OBJETIVO: reducir el drawdown máximo por debajo del 50% sacrificando
+#  algunos trades en momentos de racha adversa, no modificando la
+#  lógica de entrada/salida de la estrategia base.
+# ═══════════════════════════════════════════════════════════════════
+#endregion
 def evaluate_protection_system(balance_bot: float, balance_peak: float, consecutive_losses: int):
     """ 
     Evaluates consecutive loss streaks and drawdown thresholds to determinate
