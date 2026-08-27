@@ -1,8 +1,6 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from src.data_loader import load_and_clean_data, resample_data
 from src.indicators import calculate_adx
+from src.strategy import ejecutar_backtest_con_proteccion
 
 #region
 # ═══════════════════════════════════════════════════════════════════
@@ -33,22 +31,26 @@ from src.indicators import calculate_adx
 #  lógica de entrada/salida de la estrategia base.
 # ═══════════════════════════════════════════════════════════════════
 #endregion
+if __name__ == "__main__":
+    # 1 | load and cooking data
+    df_raw = load_and_clean_data("btc.csv")
+    df_h = resample_data(df_raw, timeframe="4h")
 
-df_raw = load_and_clean_data("btc.csv")
-df_h = resample_data(df_raw, timeframe="4h")
-df_h['adx'] = calculate_adx(df_h, period=14)
-
-
-def ejecutar_backtest_con_proteccion(csv_path):
-    # 3. INDICADORES
+    # 2 | calculate indicators
+    # Indicators 
     df_h['Ema200'] = df_h['close'].ewm(span=200, adjust=False).mean()
-    df_h['Ema50']  = df_h['close'].ewm(span=50,  adjust=False).mean()
-
-    high_low    = df_h['high'] - df_h['low']
-    high_close  = np.abs(df_h['high'] - df_h['close'].shift())
-    low_close   = np.abs(df_h['low']  - df_h['close'].shift())
-    df_h['atr'] = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).rolling(14).mean()
+    df_h['Ema50'] = df_h['close'].ewm(span=50, adjust=False).mean()
+    df_h['atr'] = calculate_average_true_range(df_h, period=14)
     df_h['adx'] = calculate_adx(df_h, period=14)
+    
+def ejecutar_backtest_con_proteccion(csv_path):
+    # Indicadores (limpios y desacoplados usando los módulos)
+    df_h['Ema200'] = df_h['close'].ewm(span=200, adjust=False).mean()
+    df_h['Ema50'] = df_h['close'].ewm(span=50, adjust=False).mean()
+
+    # Usamos la función modular de ATR 
+    df_h['atr'] = calculate_average_true_range[df_h, period=14]
+    df_h['adx'] = calculate_adx[df_h, period=14]
 
     df_h['volatilidad_ok']  = df_h['atr'] < (df_h['close'] * 0.02)
     df_h['tendencia_fuerte'] = df_h['adx'] > 31
