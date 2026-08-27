@@ -10,7 +10,10 @@ def evaluate_protection_system(balance_bot: float, balance_peak: float, consecut
         if not isinstance(balance_bot, (int, float)) or not isinstance(balance_peak, (int, float)):
             raise TypeError("Balance & peak must be numeric value")
         
-        if not isinstance(consecutive_losses, int) or consecutive_losses < 0:
+        if not isinstance(consecutive_losses, int):
+            raise TypeError("Consecutive losses must be an integer")
+
+        if consecutive_losses < 0:
             raise ValueError("Consecutive losses must be a non-negative integer")
 
         #Prevent ZeroDivisionError or negative peak anomalies
@@ -29,9 +32,6 @@ def evaluate_protection_system(balance_bot: float, balance_peak: float, consecut
         #Configured thresholds
         LOSSES_LEVEL1, LOSSES_LEVEL2, LOSSES_LEVEL3 = 2, 3, 4
         DD_LEVEL1, DD_LEVEL2, DD_LEVEL3 = 0.15, 0.25, 0.40
-
-        #Calculate current drawdown
-        current_drawdown = (balance_bot - balance_peak) / balance_peak
 
         #Level based on losses:
         if consecutive_losses >= LOSSES_LEVEL3:
