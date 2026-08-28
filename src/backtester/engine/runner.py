@@ -13,13 +13,19 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
     if df_h is None or df_h.empty:
         raise ValueError("DataFrame is empty. Cannot run simulation")
 
-    state = BacktestState(initial_equity= 1000.0)
+    state = BacktestState(equity=1000.0)
 
-    for index, current_bar in df_h.iterrows():
+    state.prepare_buffers(total_bars=len(df_h))
+
+    for current_bar in df_h.itertuples(index=True):
+        index = current_bar.Index
         try:
             # Skip rows with missing critical data
-            if pd.isna(current_bar['close']) or pd.isna(current_bar['Ema200']):
-                logger.warning(f"Missing data at {index}. Skipping bar.")
+            c_close = getattr(current_bar, 'close', None)
+            ema200 = getattr(current_bar, 'Ema200', None)
+
+            if c_close is None or ema200 is None or pd.isna(c_close) or pd.isna(ema200):
+                logger.warning(f"Missing data at {index}. Skipped bar")
                 continue
 
             # Bankruptcy check
@@ -67,5 +73,7 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
             # Catches math errors, corrupted data, etc
             logger.error(f"Critical error processing bar {index}: {str(e)}")
             continue
-        
+    
+    state.finalize_buffers()
+
     return state
