@@ -5,7 +5,17 @@ def load_and_clean_data(csv_path: str) -> pd.DataFrame:
     if not os.path.exists(csv_path):    # handle error path 
         raise FileNotFoundError(f"The file {csv_path} does not exist.")  
   
-    df = pd.read_csv(csv_path, sep=None, engine='python') # if not search pre-defined
+    df = pd.read_csv(
+            csv_path, 
+            engine='c',
+            dtype={
+                "open": "float32",
+                "high": "float32",
+                "low": "float32",
+                "close": "float32",
+                "volume": "float32"
+            }
+        )
 
     df.columns = [c.lower().strip().replace("<", "").replace(">", "") for c in df.columns] # cleaning the data lowercase and spaces for each column
 

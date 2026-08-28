@@ -9,7 +9,8 @@ def execute_new_entry(current_bar: pd.Series, index: Any, state: Any) -> None:
     #Handles the execution logic for opening a new leveraged long position 
     #Applies fees and initializes the TradePosition object safely
     try:
-        if current_bar is None or 'close' not in current_bar:
+        c_close = getattr(current_bar, 'close', None)
+        if current_bar is None or c_close is None:
             raise ValueError("Invalid bar data provided for trade entry.")
 
         #Hardcoded parameters
@@ -25,7 +26,7 @@ def execute_new_entry(current_bar: pd.Series, index: Any, state: Any) -> None:
         state.total_fees_paid += entry_fee
 
         #Simulate small slippage on entry
-        p_entry_real = float(current_bar['close']) * 1.001
+        p_entry_real = float(c_close) * 1.001
         entry_date = index 
 
         state.active_position = TradePosition(
@@ -46,26 +47,26 @@ def execute_new_entry(current_bar: pd.Series, index: Any, state: Any) -> None:
         logger.error(f"Critical error executing new entry at {index}: {e}")
         state.pending_signal = False
 
-def manage_open_position(current_bar: pd.Series, index: Any, state: Any) -> None:
+def manage_open_position(current_bar: Any, index: Any, state: Any) -> None:
     #Manages the lifecycle of an open position: updates prices, checks stop losses
     #Takes partial profits, evaluates EMA exists, and closes the trade if triggered
     try:
         if not state.in_position or state.active_position is None:
             return
 
-        c_close = float(current_bar['close'])
-        ema200 = float(current_bar['Ema200'])
+        c_close = float(getattr(current_bar, 'close'))
+        ema200 = float(getattr(current_bar, 'Ema200'))
         exit_ema_margin = 0.006
         fee_rate = 0.0006 
         funding_rate_4h = 0.0001
 
         #Update postion metrics
         update_result = state.active_position.update_position(
-            current_close = c_close,
-            ema200 = ema200,
-            exit_ema_margin = exit_ema_margin,
-            fee_rate = fee_rate,
-            funding_rate_4h = funding_rate_4h
+            current_close=c_close,
+            ema200=ema200,
+            exit_ema_margin=exit_ema_margin,
+            fee_rate=fee_rate,
+            funding_rate_4h=funding_rate_4h
         )
 
         #Deduct funding fees
@@ -87,8 +88,8 @@ def manage_open_position(current_bar: pd.Series, index: Any, state: Any) -> None
         #Close poition if stop loss, trailing stop, or EMA condition met
         if update_result.get("should_close", False) or should_close_by_ema:
             net_pnl, exit_fee, final_return = state.active_position.close_position(
-                current_close = c_close,
-                fee_rate = fee_rate
+                current_close=c_close,
+                fee_rate=fee_rate
             )
             state.total_fees_paid += exit_fee
 

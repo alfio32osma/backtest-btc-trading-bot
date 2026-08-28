@@ -1,14 +1,12 @@
 import logging
 import sys
 import os
-import pandas as pd
 
 #Sys path if necessary
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 
 from src.data_loader import load_and_clean_data, resample_data
 from src.indicators import calculate_adx, calculate_average_true_range
-from src.backtester.risk_manager import evaluate_protection_system
 from src.backtester.engine.runner import run_simulation_engine
 from src.backtester.engine.metrics import calculate_performance_metrics, print_quant_report
 from src.backtester.engine.plotting import plot_backtest_results
@@ -25,7 +23,8 @@ def main() -> None:
     #Main execution pipeline for the algorithmic trading backtester.
     #Loads data, computes indicators, runs execution engine, generates metrics
     #Exports CSV reports, and plots performance charts.
-    csv_path = "btc.csv"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(base_dir, "btc.csv")
 
     logger.info("Starting algorithmic trading backtest...")
 
@@ -72,8 +71,8 @@ def main() -> None:
         metrics = calculate_performance_metrics(final_state)
 
         # Export CSV reports
-        output_trades_csv = "protected_trades_report.csv"
-        output_pauses_csv = "activated_pauses_report.csv"
+        output_trades_csv = os.path.join(base_dir, "protected_trades_report.csv")
+        output_pauses_csv = os.path.join(base_dir, "activated_pauses_report.csv")
 
         df_trades = metrics.get("df_trades")
         if df_trades is not None and not df_trades.empty:
@@ -92,7 +91,7 @@ def main() -> None:
 
         # Plot performance charts
         logger.info("Generating performance plots...")
-        plot_backtest_results(metrics, output_filename="backtest_performance.png")
+        plot_backtest_results(metrics, output_filename=os.path.join(base_dir, "backtest_performance.png"))
 
         logger.info("Backtest execution completed succesfully")
 

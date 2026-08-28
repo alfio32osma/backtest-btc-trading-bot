@@ -9,15 +9,16 @@ logger = logging.getLogger(__name__)
 
 def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
     #Core backtest loop, ochestrates state, risk and execution
-
     if df_h is None or df_h.empty:
         raise ValueError("DataFrame is empty. Cannot run simulation")
 
     state = BacktestState(equity=1000.0)
-
     state.prepare_buffers(total_bars=len(df_h))
 
+    last_bar = None
+
     for current_bar in df_h.itertuples(index=True):
+        last_bar = current_bar
         index = current_bar.Index
         try:
             # Skip rows with missing critical data
@@ -38,9 +39,9 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
 
             # Risk Management
             new_level, pause_candles, current_drawdown = evaluate_protection_system(
-                balance_bot = state.equity,
-                balance_peak = state.equity_peak,
-                consecutive_losses = state.consecutive_losses
+                balance_bot=state.equity,
+                balance_peak=state.equity_peak,
+                consecutive_losses=state.consecutive_losses
             )
 
             if new_level > state.active_level and not state.in_position:
@@ -74,6 +75,31 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
             logger.error(f"Critical error processing bar {index}: {str(e)}")
             continue
     
-    state.finalize_buffers()
+    #force close any open position at the end of the backtest
+    if state.in_position and last_bar is not None:
+        try:
+            c_close = float(getattr(last_bar, 'close'))
+            net_pnl, exit_fee, final_return = state.active_position.close_position(
+                current_close=c_close,
+                fee_rate=0.0006
+            )
+            state.trade_list.append({
+                'Entry Date': state.active_position.entry_date,
+                'Exit Date': last_bar.Index,
+                'Entry Price': round(state.active_position.entry_price, 2),
+                'Exit Price': round(c_close, 2),
+                'Net Return %': round(final_return * 100, 2),
+                'Net Profit €': round(net_pnl, 2),
+                'Post-Trade Equity': round(state.equity + net_pnl, 2),
+                'Protection Level': state.active_level
+            })
+            state.equity += net_pnl
+            state.in_position = False
+            state.active_position = None
 
+        except Exception as e:
+            logger.error(f"Error closing final open position at: {e}")
+
+    state.finalize_buffers()
+    
     return state
