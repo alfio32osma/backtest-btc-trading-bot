@@ -11,7 +11,7 @@ def check_entry_signal(current_bar: pd.Series) -> bool:
         required_keys = ['close', 'Ema200', 'Ema50', 'volatility_ok', 'strong_trend']
         for key in required_keys:
             if key not in current_bar:
-                logger.error(f"Missing mandatory column '{key}' in market bard data")
+                logger.error(f"Missing mandatory column '{key}' in market bar data")
                 return False
 
         if (pd.isna(current_bar['close']) or
@@ -25,7 +25,7 @@ def check_entry_signal(current_bar: pd.Series) -> bool:
         c_close = float(current_bar['close'])
         ema200  = float(current_bar['Ema200'])
         ema50 = float(current_bar['Ema50'])
-        vol_ok = float(current_bar['volatility_ok'])
+        vol_ok = bool(current_bar['volatility_ok'])
         adx_ok = bool(current_bar['strong_trend'])
 
         #Bullish trend alignment and volatility check
@@ -40,5 +40,5 @@ def check_entry_signal(current_bar: pd.Series) -> bool:
         logger.error(f"Type conversion error while evaluating entry signal: {type_err}")
         return False
     except Exception as e:
-        logger.error(f"Unexpected error evaluating entry signnal: {e}")
+        logger.error(f"Unexpected error evaluating entry signal: {e}")
         return False

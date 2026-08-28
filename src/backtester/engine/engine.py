@@ -1,8 +1,8 @@
 import logging
 import pandas as pd
-from src.backtester.state import BacktestState
-from src.backtester.strategy import check_entry_signal
-from src.backtester.execution import manage_open_position, execute_new_entry
+from src.backtester.engine.state import BacktestState
+from src.backtester.engine.strategy import check_entry_signal
+from src.backtester.engine.execution import manage_open_position, execute_new_entry
 from src.backtester.risk_manager import evaluate_protection_system
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
 
             # Bankruptcy check
             if state.equity <= 0:
-                logger.errors(f"Bankruptcy reached at {index}. Halting simulation")
+                logger.error(f"Bankruptcy reached at {index}. Halting simulation")
                 break
 
             # Update equity high-water mark for drawdowns
@@ -52,11 +52,11 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
                 if state.pending_signal:
                     if system_locked:
                         state.pending_signal = False
-                        state.skiped_trades += 1
+                        state.skipped_trades += 1
                     else:
                         execute_new_entry(current_bar, index, state)
 
-                #ask strategy module if we shoudl open a trade next bar
+                #ask strategy module if we should open a trade next bar
                 elif not system_locked and check_entry_signal(current_bar):
                     state.pending_signal = True
 
@@ -64,7 +64,7 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
             state.record_history(index)
 
         except Exception as e:
-            # Catches match errors, corrupted data, etc
+            # Catches math errors, corrupted data, etc
             logger.error(f"Critical error processing bar {index}: {str(e)}")
             continue
         
