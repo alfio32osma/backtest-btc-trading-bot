@@ -1,11 +1,16 @@
+import logging
+import sys
+import os
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
+
+#Sys path if necessary
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 
 from src.data_loader import load_and_clean_data, resample_data
 from src.indicators import calculate_adx, calculate_average_true_range
 from src.backtester.risk_manager import evaluate_protection_system
-from src.backtester.position import TradePosition
+from src.backtester.engine.runner import run_simulation_engine
+from src
 
 
 def ejecutar_backtest_con_proteccion(csv_path):
