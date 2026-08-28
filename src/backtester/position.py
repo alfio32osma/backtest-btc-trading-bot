@@ -124,9 +124,11 @@ class TradePosition:
                 'current_return': current_return,
                 'has_error': False
             }
+        
         except (InvalidPriceError, InvalidParameterError) as e:
             logger.error(f"Market data or parameter validation error during update_position: {e}")
             return default_error_response
+        
         except Exception as e:
             logger.exception(f"Unexpected critical error during position update: {e}")
             return default_error_response
@@ -152,7 +154,7 @@ class TradePosition:
         except InvalidPriceError as e:
             logger.error(f"Market error during position closure, returning zero PnL safety fallback: {e}")
             return 0.0, 0.0, 0.0
+        
         except Exception as e:
             logger.exception(f"Unexpected error while closing position: {e}")
             return 0.0, 0.0, 0.0
-        

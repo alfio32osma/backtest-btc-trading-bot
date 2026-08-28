@@ -41,6 +41,7 @@ def check_entry_signal(current_bar: Any) -> bool:
     except (ValueError, TypeError) as type_err:
         logger.error(f"Type conversion error while evaluating entry signal: {type_err}")
         return False
+    
     except Exception as e:
         logger.error(f"Unexpected error evaluating entry signal: {e}")
         return False

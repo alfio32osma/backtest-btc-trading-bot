@@ -1,6 +1,4 @@
-
-# Description: Vectorized technical indicators optimized for high-frequency quantitative backtesting.
-    
+# Description: Vectorized technical indicators optimized for high-frequency quantitative backtesting.   
 import pandas as pd
 import numpy as np 
 
@@ -92,6 +90,7 @@ def calculate_adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
 
         plus_dm.loc[plus_dm < minus_dm] = 0
         minus_dm.loc[minus_dm < plus_dm.shift(0)] = 0
+
     except Exception as e:
         raise RuntimeError(f"Error calculating Directional Movement (DM): {e}")
     
@@ -105,6 +104,7 @@ def calculate_adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
 
         suma_di = plus_di + minus_di
         safe_suma_di = suma_di.replace(0, np.nan)
+
     except Exception as e: 
         raise RuntimeError(f"Error during smoothing or DI calculations: {e}")
 
@@ -116,9 +116,11 @@ def calculate_adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
         if adx.empty:
             raise ValueError("Calculated ADX resulted in an empty series.")
         return adx    
+    
     except (KeyError, TypeError, ValueError):
         # Let error go through without any modification
         raise 
+    
     except Exception as e:
         # Unexpected ejecution or mathemmatical errors (Pandas | Numpy)
         raise RuntimeError(f"Error computing final DX/ ADX metrics: {e}")

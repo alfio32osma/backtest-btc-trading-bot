@@ -28,12 +28,8 @@
 # ═══════════════════════════════════════════════════════════════════
 #endregion
 def evaluate_protection_system(balance_bot: float, balance_peak: float, consecutive_losses: int):
-    """ 
-    Evaluates consecutive loss streaks and drawdown thresholds to determinate
-    the active pause level for the capital protection system
-    """
-
-
+    #Evaluates consecutive loss streaks and drawdown thresholds to determinate
+    #the active pause level for the capital protection system
     try:
         #Input validation & error handling:
         if not isinstance(balance_bot, (int, float)) or not isinstance(balance_peak, (int, float)):
