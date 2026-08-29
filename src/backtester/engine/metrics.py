@@ -1,14 +1,19 @@
 import logging
 import pandas as pd
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+
+from src.config import BacktestConfig
 
 logger = logging.getLogger(__name__)
 
 class MetricsError(Exception):
     pass
 
-def calculate_performance_metrics(final_state: Any) -> Dict[str, Any]:
+def calculate_performance_metrics(final_state: Any, cfg: Optional[BacktestConfig] = None) -> Dict[str, Any]:
+    if cfg is None:
+        cfg = BacktestConfig()
+
     # ncludes CAGR, sharpe ratio, max DD, WR, PF
     #Handle cases such as zero trades, constant equity, or empty history
     default_metrics = {
@@ -67,14 +72,16 @@ def calculate_performance_metrics(final_state: Any) -> Dict[str, Any]:
         sortino_ratio = 0.0
 
         if not returns.empty and returns.std() > 0:
-            # 4h candles to 6 candles per day is a total of 2190 periods per year
-            periods_per_year = 2190
+            periods_per_year = float(cfg.periods_per_year)
             mean_return = returns.mean()
             std_return = returns.std()
             sharpe_ratio = float((mean_return / std_return) * np.sqrt(periods_per_year))
 
             downside_returns = returns[returns < 0]
-            downside_std = downside_returns.std() if not downside_returns.empty else 0.0
+            if not downside_returns.empty:
+                downside_std = float(np.sqrt(np.mean(np.square(downside_returns))))
+            else:
+                downside_std = 0.0
             if downside_std > 0:
                 sortino_ratio = float((mean_return / downside_std) * np.sqrt(periods_per_year))
 

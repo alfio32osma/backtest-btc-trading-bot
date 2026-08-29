@@ -1,11 +1,12 @@
 import logging
 import pandas as pd
 from typing import Any
+from src.config import BacktestConfig
 from src.backtester.position import TradePosition
 
 logger = logging.getLogger(__name__)
 
-def execute_new_entry(current_bar: pd.Series, index: Any, state: Any) -> None:
+def execute_new_entry(current_bar: pd.Series, index: Any, state: Any, cfg: BacktestConfig) -> None:
     #Handles the execution logic for opening a new leveraged long position 
     #Applies fees and initializes the TradePosition object safely
     try:
@@ -13,12 +14,12 @@ def execute_new_entry(current_bar: pd.Series, index: Any, state: Any) -> None:
         if current_bar is None or c_close is None:
             raise ValueError("Invalid bar data provided for trade entry.")
 
-        #Hardcoded parameters
-        leverage = 3.5
-        fee_rate = 0.0006
-        stop_loss_pct = 0.03
-        trailing_pct = 0.03
-        tp_parcial_pct = 0.247
+        # Parameters from config
+        leverage = cfg.leverage
+        fee_rate = cfg.fee_rate
+        stop_loss_pct = cfg.stop_loss_pct
+        trailing_pct = cfg.trailing_stop_pct
+        tp_parcial_pct = cfg.tp_parcial_pct
 
         capital_in_trade = state.equity
         entry_fee = (capital_in_trade * leverage) * fee_rate
@@ -26,7 +27,7 @@ def execute_new_entry(current_bar: pd.Series, index: Any, state: Any) -> None:
         state.total_fees_paid += entry_fee
 
         #Simulate small slippage on entry
-        p_entry_real = float(c_close) * 1.001
+        p_entry_real = float(c_close) * (1 + cfg.slippage)
         entry_date = index 
 
         state.active_position = TradePosition(
@@ -47,7 +48,7 @@ def execute_new_entry(current_bar: pd.Series, index: Any, state: Any) -> None:
         logger.error(f"Critical error executing new entry at {index}: {e}")
         state.pending_signal = False
 
-def manage_open_position(current_bar: Any, index: Any, state: Any) -> None:
+def manage_open_position(current_bar: Any, index: Any, state: Any, cfg: BacktestConfig) -> None:
     #Manages the lifecycle of an open position: updates prices, checks stop losses
     #Takes partial profits, evaluates EMA exists, and closes the trade if triggered
     try:
@@ -56,9 +57,9 @@ def manage_open_position(current_bar: Any, index: Any, state: Any) -> None:
 
         c_close = float(getattr(current_bar, 'close'))
         ema200 = float(getattr(current_bar, 'Ema200'))
-        exit_ema_margin = 0.006
-        fee_rate = 0.0006 
-        funding_rate_4h = 0.0001
+        exit_ema_margin = cfg.exit_ema_margin
+        fee_rate = cfg.fee_rate
+        funding_rate_4h = cfg.funding_rate_4h
 
         #Update postion metrics
         update_result = state.active_position.update_position(

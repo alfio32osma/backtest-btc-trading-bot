@@ -27,8 +27,19 @@
 #  lógica de entrada/salida de la estrategia base.
 # ═══════════════════════════════════════════════════════════════════
 #endregion
-def evaluate_protection_system(balance_bot: float, balance_peak: float, consecutive_losses: int):
-    #Evaluates consecutive loss streaks and drawdown thresholds to determinate
+from src.config import BacktestConfig
+
+
+def evaluate_protection_system(
+        balance_bot: float,
+        balance_peak: float,
+        consecutive_losses: int,
+        cfg: BacktestConfig | None = None
+        ):
+    if cfg is None:
+        cfg = BacktestConfig()
+
+    #Evaluates cocnsecutive loss streaks and drawdown thresholds to determinate
     #the active pause level for the capital protection system
     try:
         #Input validation & error handling:
@@ -54,26 +65,23 @@ def evaluate_protection_system(balance_bot: float, balance_peak: float, consecut
         except ZeroDivisionError as zde:
             raise ZeroDivisionError(f"Mathematical error during drawdown calcilation: {zde}")
         
-        #Configured thresholds
-        LOSSES_LEVEL1, LOSSES_LEVEL2, LOSSES_LEVEL3 = 2, 3, 4
-        DD_LEVEL1, DD_LEVEL2, DD_LEVEL3 = 0.15, 0.25, 0.40
-
-        #Level based on losses:
-        if consecutive_losses >= LOSSES_LEVEL3:
+        # Use dynamic thresholds from config
+        # Level based on losses:
+        if consecutive_losses >= cfg.losses_level3:
             level_by_losses = 3
-        elif consecutive_losses >= LOSSES_LEVEL2:
+        elif consecutive_losses >= cfg.losses_level2:
             level_by_losses = 2
-        elif consecutive_losses >= LOSSES_LEVEL1:
+        elif consecutive_losses >= cfg.losses_level1:
             level_by_losses = 1
         else: 
             level_by_losses = 0
 
         #level based on drawdown:
-        if current_drawdown <= -DD_LEVEL3:
+        if current_drawdown <= -cfg.dd_level3:
             level_by_drawdown = 3
-        elif current_drawdown <= -DD_LEVEL2:
+        elif current_drawdown <= -cfg.dd_level2:
             level_by_drawdown = 2
-        elif current_drawdown <= -DD_LEVEL1:
+        elif current_drawdown <= -cfg.dd_level1:
             level_by_drawdown = 1
         else:
             level_by_drawdown = 0
@@ -81,9 +89,12 @@ def evaluate_protection_system(balance_bot: float, balance_peak: float, consecut
         #Active level is the highest between losses & drawdown
         new_level = max(level_by_losses, level_by_drawdown)
 
-        #Mapping pause candles per level (1 candle = 4h)
-        # level 1: 3 candles (12h) | level 2: 12 candles (48h) | level 3: 30 candles (5 days)
-        pause_map = {1: 3, 2: 12, 3: 30}
+        #Mapping pause candles per level using config values
+        pause_map = {
+            1: cfg.pause_candles_level1,
+            2: cfg.pause_candles_level2,
+            3: cfg.pause_candles_level3
+        }
         pause_candles = pause_map.get(new_level, 0)
 
         return new_level, pause_candles, current_drawdown

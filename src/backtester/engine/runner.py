@@ -7,7 +7,9 @@ from src.backtester.risk_manager import evaluate_protection_system
 
 logger = logging.getLogger(__name__)
 
-def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
+from src.config import BacktestConfig
+
+def run_simulation_engine(df_h: pd.DataFrame, cfg: BacktestConfig) -> BacktestState:
     #Core backtest loop, ochestrates state, risk and execution
     if df_h is None or df_h.empty:
         raise ValueError("DataFrame is empty. Cannot run simulation")
@@ -41,7 +43,8 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
             new_level, pause_candles, current_drawdown = evaluate_protection_system(
                 balance_bot=state.equity,
                 balance_peak=state.equity_peak,
-                consecutive_losses=state.consecutive_losses
+                consecutive_losses=state.consecutive_losses,
+                cfg=cfg
             )
 
             if new_level > state.active_level and not state.in_position:
@@ -54,14 +57,14 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
 
             # Trade Management
             if state.in_position:
-                manage_open_position(current_bar, index, state)
+                manage_open_position(current_bar, index, state, cfg)
             else:
                 if state.pending_signal:
                     if system_locked:
                         state.pending_signal = False
                         state.skipped_trades += 1
                     else:
-                        execute_new_entry(current_bar, index, state)
+                        execute_new_entry(current_bar, index, state, cfg)
 
                 #ask strategy module if we should open a trade next bar
                 elif not system_locked and check_entry_signal(current_bar):
@@ -81,7 +84,7 @@ def run_simulation_engine(df_h: pd.DataFrame) -> BacktestState:
             c_close = float(getattr(last_bar, 'close'))
             net_pnl, exit_fee, final_return = state.active_position.close_position(
                 current_close=c_close,
-                fee_rate=0.0006
+                fee_rate=cfg.fee_rate
             )
             state.trade_list.append({
                 'Entry Date': state.active_position.entry_date,

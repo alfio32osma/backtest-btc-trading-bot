@@ -5,7 +5,9 @@ import os
 #Sys path if necessary
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 
+from src.config import BacktestConfig
 from src.data_loader import load_and_clean_data, resample_data
+
 from src.indicators import calculate_adx, calculate_average_true_range
 from src.backtester.engine.runner import run_simulation_engine
 from src.backtester.engine.metrics import calculate_performance_metrics, print_quant_report
@@ -23,8 +25,9 @@ def main() -> None:
     #Main execution pipeline for the algorithmic trading backtester.
     #Loads data, computes indicators, runs execution engine, generates metrics
     #Exports CSV reports, and plots performance charts.
+    cfg = BacktestConfig()
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(base_dir, "btc.csv")
+    csv_path = os.path.join(base_dir, cfg.csv_filename)
 
     logger.info("Starting algorithmic trading backtest...")
 
@@ -38,22 +41,22 @@ def main() -> None:
         logger.info(f"Loading and cleaning data from {csv_path}...")
         df_clean = load_and_clean_data(csv_path)
 
-        # Resample to 4h candles
-        logger.info("Resampling dataset to 4h timeframe...")
-        df_h = resample_data(df_clean, timeframe="4h")
+        # Resample to configured timeframe
+        logger.info(f"Resampling dataset to {cfg.timeframe} timeframe...")
+        df_h = resample_data(df_clean, timeframe=cfg.timeframe)
 
         # Compute technical indicators
-        logger.info("Computing technical indicators (EMA, ATR, ADX)...")
-        df_h['Ema50'] = df_h['close'].ewm(span=50, adjust=False).mean()
-        df_h['Ema200'] = df_h['close'].ewm(span=200, adjust=False).mean()
+        logger.info(f"Computing technical indicators (EMA, ATR, ADX)...")
+        df_h['Ema50'] = df_h['close'].ewm(span=cfg.ema_fast_period, adjust=False).mean()
+        df_h['Ema200'] = df_h['close'].ewm(span=cfg.ema_slow_period, adjust=False).mean()
 
         # Volatility and trend conditions
-        atr = calculate_average_true_range(df_h, period=14)
-        atr_sma = atr.rolling(window=14).mean()
+        atr = calculate_average_true_range(df_h, period=cfg.atr_period)
+        atr_sma = atr.rolling(window=cfg.atr_sma_period).mean()
         df_h['volatility_ok'] = atr >= atr_sma
 
-        adx = calculate_adx(df_h, period=14)
-        df_h['strong_trend'] = adx > 25
+        adx = calculate_adx(df_h, period=cfg.adx_period)
+        df_h['strong_trend'] = adx > cfg.adx_threshold
 
         # Drop NaN rows from indicator warm-up periods
         df_h = df_h.dropna()
@@ -64,7 +67,8 @@ def main() -> None:
 
         # Run core simulation engine
         logger.info(f"Running simulation engine over {len(df_h)} bars...")
-        final_state = run_simulation_engine(df_h)
+        final_state = run_simulation_engine(df_h, cfg)
+
 
         # Calculate metrics
         logger.info("Calculating performance metrics...")
