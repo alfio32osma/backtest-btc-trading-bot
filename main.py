@@ -52,8 +52,7 @@ def main() -> None:
 
         # Volatility and trend conditions
         atr = calculate_average_true_range(df_h, period=cfg.atr_period)
-        atr_sma = atr.rolling(window=cfg.atr_sma_period).mean()
-        df_h['volatility_ok'] = atr >= atr_sma
+        df_h['volatility_ok'] = atr < (df_h['close'] * 0.02)
 
         adx = calculate_adx(df_h, period=cfg.adx_period)
         df_h['strong_trend'] = adx > cfg.adx_threshold

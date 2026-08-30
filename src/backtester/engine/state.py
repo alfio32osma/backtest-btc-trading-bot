@@ -26,9 +26,27 @@ class BacktestState:
 
     #data arrays & pre-allocated vector buffers
     pause_logs: List[Dict[str, Any]] = field(default_factory=list)
-    history_total: Union[List[float], np.ndarray] = field(default_factory=list)
-    dates: Union[List[Any], np.ndarray] = field(default_factory=list)
+    equity_history: Union[List[float], np.ndarray] = field(default_factory=list)
+    history_dates: Union[List[Any], np.ndarray] = field(default_factory=list)
     trade_list: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Backward-compatible aliases kept for older code/tests while the new names
+    # remain the canonical attribute names in the backtest state.
+    @property
+    def history_total(self):
+        return self.equity_history
+
+    @history_total.setter
+    def history_total(self, value):
+        self.equity_history = value
+
+    @property
+    def dates(self):
+        return self.history_dates
+
+    @dates.setter
+    def dates(self, value):
+        self.history_dates = value
 
     #indexing cursor for numpy buffer pre-allocation
     _cursor: int = 0
@@ -39,8 +57,8 @@ class BacktestState:
             if total_bars <= 0:
                 raise ValueError(f"Invalid total_bars: {total_bars}")
             
-            self.history_total = np.zeros(total_bars, dtype=np.float64)
-            self.dates = np.empty(total_bars, dtype=object)
+            self.equity_history = np.zeros(total_bars, dtype=np.float64)
+            self.history_dates = np.empty(total_bars, dtype=object)
             self._cursor = 0
             self._is_preallocated = True
 
@@ -55,24 +73,24 @@ class BacktestState:
                 raise ValueError("Can't record history for a None type date")
 
             if self._is_preallocated:
-                if self._cursor < len(self.history_total):
-                    self.history_total[self._cursor] = self.equity
-                    self.dates[self._cursor] = current_date
+                if self._cursor < len(self.equity_history):
+                    self.equity_history[self._cursor] = self.equity
+                    self.history_dates[self._cursor] = current_date
                     self._cursor += 1
                 else:
                     logger.warning("Pre-allocated buffer overflow. Falling back to append")
-                    if isinstance(self.history_total, np.ndarray):
-                        self.history_total = self.history_total.tolist()
-                        self.dates = self.dates.tolist()
-                    self.history_total.append(self.equity)
-                    self.dates.append(current_date)
+                    if isinstance(self.equity_history, np.ndarray):
+                        self.equity_history = self.equity_history.tolist()
+                        self.history_dates = self.history_dates.tolist()
+                    self.equity_history.append(self.equity)
+                    self.history_dates.append(current_date)
             else:
-                if isinstance(self.history_total, list):
-                    self.history_total.append(self.equity)
-                    self.dates.append(current_date)
+                if isinstance(self.equity_history, list):
+                    self.equity_history.append(self.equity)
+                    self.history_dates.append(current_date)
                 else:
-                    self.history_total = list(self.history_total) + [self.equity]
-                    self.dates = list(self.dates) + [current_date]
+                    self.equity_history = list(self.equity_history) + [self.equity]
+                    self.history_dates = list(self.history_dates) + [current_date]
 
         except Exception as e: 
             logger.error(f"Failed to record history at {current_date}: {e}")
@@ -81,11 +99,11 @@ class BacktestState:
         #trims unused pre-allocated buffer elements to guarantee clean array lengths
         try:
             if self._is_preallocated:
-                if isinstance(self.history_total, np.ndarray):
-                    self.history_total = self.history_total[:self._cursor]
+                if isinstance(self.equity_history, np.ndarray):
+                    self.equity_history = self.equity_history[:self._cursor]
 
-                if isinstance(self.dates, np.ndarray):
-                    self.dates = self.dates[:self._cursor]
+                if isinstance(self.history_dates, np.ndarray):
+                    self.history_dates = self.history_dates[:self._cursor]
 
         except Exception as e:
             logger.error(f"Error finalizing state buffers: {e}")

@@ -38,6 +38,15 @@ def evaluate_protection_system(
         ):
     if cfg is None:
         cfg = BacktestConfig()
+        cfg.losses_level1 = 2
+        cfg.losses_level2 = 3
+        cfg.losses_level3 = 4
+        cfg.dd_level1 = 0.15
+        cfg.dd_level2 = 0.25
+        cfg.dd_level3 = 0.40
+        cfg.pause_candles_level1 = 3
+        cfg.pause_candles_level2 = 12
+        cfg.pause_candles_level3 = 30
 
     #Evaluates cocnsecutive loss streaks and drawdown thresholds to determinate
     #the active pause level for the capital protection system

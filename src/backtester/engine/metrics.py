@@ -29,11 +29,14 @@ def calculate_performance_metrics(final_state: Any, cfg: Optional[BacktestConfig
         "pauses_l3": 0
     }
     try:
-        if not hasattr(final_state, "history_total") or len(final_state.history_total) == 0:
-            logger.warning("History total is empty BacktestState. Returning default metrics")
+        equity_history = getattr(final_state, "equity_history", None)
+        history_dates = getattr(final_state, "history_dates", None)
+
+        if equity_history is None or len(equity_history) == 0:
+            logger.warning("Equity history is empty in BacktestState. Returning default metrics")
             return default_metrics
 
-        history_series = pd.Series(final_state.history_total, index=pd.to_datetime(final_state.dates))
+        history_series = pd.Series(equity_history, index=pd.to_datetime(history_dates))
         if history_series.empty:
             return default_metrics
 
