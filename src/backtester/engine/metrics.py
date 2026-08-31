@@ -69,7 +69,8 @@ def calculate_performance_metrics(final_state: Any, cfg: Optional[BacktestConfig
             else:
                 profit_factor = gross_won / gross_lost
 
-        #sharpe and Sortino on 4h bar returns
+        # Sharpe and Sortino are annualized using the configured candle timeframe.
+        # This avoids assuming a fixed 4h bar regime when 'timeframe' changes.
         returns = history_series.pct_change().dropna()
         sharpe_ratio = 0.0
         sortino_ratio = 0.0

@@ -44,9 +44,15 @@ def main() -> None:
         # Resample to configured timeframe
         logger.info(f"Resampling dataset to {cfg.timeframe} timeframe...")
         df_h = resample_data(df_clean, timeframe=cfg.timeframe)
-        print(f"Primera vela: {df_h.index[0]}")
-        print(f"Segunda vela: {df_h.index[1]}")
-        print(f"Diferencia: {df_h.index[1] - df_h.index[0]}")
+        if len(df_h) > 0:
+            print(f"Primera vela: {df_h.index[0]}")
+        if len(df_h) > 1:
+            print(f"Segunda vela: {df_h.index[1]}")
+            print(f"Diferencia: {df_h.index[1] - df_h.index[0]}")
+        else:
+            logger.warning(
+                "Dataset con una sola vela tras el remuestreo; la validación del backtest continúa de forma segura."
+            )
 
         # Compute technical indicators
         logger.info(f"Computing technical indicators (EMA, ATR, ADX)...")

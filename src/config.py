@@ -128,6 +128,11 @@ class BacktestConfig:
                 f"Got: {self.losses_level1}, {self.losses_level2}, {self.losses_level3}"
             )
 
+        if self.losses_level2 == self.losses_level3:
+            raise ValueError(
+                f"Loss levels must be strictly increasing; got {self.losses_level1}, {self.losses_level2}, {self.losses_level3}."
+            )
+
         for name, val in [
             ("dd_level1", self.dd_level1),
             ("dd_level2", self.dd_level2),

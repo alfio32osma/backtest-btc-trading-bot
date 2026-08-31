@@ -39,7 +39,7 @@ def test_validate_accepts_valid_config():
         ("ema_fast_period", 0),
         ("ema_slow_period", -10),
         ("losses_level1", 3),
-        ("losses_level2", 3),
+        ("losses_level2", 2),
         ("dd_level1", -0.1),
         ("dd_level3", 1.5),
         ("pause_candles_level3", -1),
