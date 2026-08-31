@@ -15,15 +15,15 @@ class BacktestConfig:
     atr_period: int = 14
     atr_sma_period: int = 14
     adx_period: int = 14
-    adx_threshold: float = 25.0
+    adx_threshold: float = 31.0
 
     # Risk Manager - Losses
     # The config validation enforces strict ascending thresholds; the default values
     # are intentionally set to a compact first tier to keep the configuration valid
     # and avoid false positives during validation checks.
-    losses_level1: int = 1
-    losses_level2: int = 2
-    losses_level3: int = 3
+    losses_level1: int = 2
+    losses_level2: int = 3
+    losses_level3: int = 4
 
     # Risk Manager - Drawdown
     dd_level1: float = 0.15
