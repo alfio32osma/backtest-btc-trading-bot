@@ -44,6 +44,9 @@ def main() -> None:
         # Resample to configured timeframe
         logger.info(f"Resampling dataset to {cfg.timeframe} timeframe...")
         df_h = resample_data(df_clean, timeframe=cfg.timeframe)
+        print(f"Primera vela: {df_h.index[0]}")
+        print(f"Segunda vela: {df_h.index[1]}")
+        print(f"Diferencia: {df_h.index[1] - df_h.index[0]}")
 
         # Compute technical indicators
         logger.info(f"Computing technical indicators (EMA, ATR, ADX)...")
@@ -101,6 +104,6 @@ def main() -> None:
     except Exception as e:
         logger.exception(f"Critical error in main backtest: {e}")
         sys.exit(1)
-
+# Añade esto temporalmente en main.py después del resample
 if __name__ == "__main__":
      main()

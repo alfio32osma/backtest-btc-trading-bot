@@ -6,7 +6,7 @@ import math
 class BacktestConfig:
     """Centralized configuration container for strategy parameters and risk limits."""
     # Data pipeline settings
-    csv_filename: str = "btc.csv"
+    csv_filename: str = "data/btc.csv"
     timeframe: str = "4h"
 
     # Technical indicator periods and thresholds
